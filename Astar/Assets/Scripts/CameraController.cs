@@ -19,11 +19,11 @@ public class CameraController : MonoBehaviour
     void Update()
     {
         float vert = Input.GetAxis("Vertical");
-        float hor = Input.GetAxis("Horizontal");
+        float hori = Input.GetAxis("Horizontal");
 
-        if(vert != 0 || hor != 0)
+        if(vert != 0 || hori != 0)
         {
-            targetPos += (Vector3.forward * vert + hor * Vector3.right).normalized * moveSpeed;
+            targetPos += moveSpeed * Time.deltaTime * (Vector3.forward * vert + hori * Vector3.right).normalized;
         }
 
         float scroll = Input.GetAxis("Mouse ScrollWheel");
