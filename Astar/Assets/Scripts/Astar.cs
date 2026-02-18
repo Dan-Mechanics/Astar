@@ -22,36 +22,38 @@ public class Astar
         while (openSet.Count > 0)
         {
             // FIND CHEAPEST NODE IN OPEN.
-            Node current = openSet[0];
+            Node node = openSet[0];
             for (int i = 1; i < openSet.Count; i++)
             {
-                if (openSet[i].FCost < current.FCost || openSet[i].FCost == current.FCost && openSet[i].hCost < current.hCost)
-                    current = openSet[i];
+                if (openSet[i].FCost < node.FCost || openSet[i].FCost == node.FCost)
+                {
+                    if (openSet[i].hCost < node.hCost)
+                        node = openSet[i];
+                }
             }
 
-            openSet.Remove(current);
-            closedSet.Add(current);
+            openSet.Remove(node);
+            closedSet.Add(node);
 
-            if (current == end)
+            if (node == end)
                 return RetracePath(start, end);
 
-            foreach (Node neighbour in GetCardinalNeighbours(current, grid))
+            foreach (Node neighbour in GetCardinalNeighbours(node, grid))
             {
                 if (closedSet.Contains(neighbour))
                     continue;
 
-                // DO WE EXCLUSE DIAGONALS ?? ASK FEEDBACK !!
-                if (!IsNeighbourWalkable(current, neighbour, grid))
+                if (!IsNeighbourWalkable(node, neighbour, grid))
                     continue;
 
-                int newGScoreNeighbour = current.gCost + GetDistance(current, neighbour);
-                if (newGScoreNeighbour >= neighbour.gCost && openSet.Contains(neighbour))
+                int newGCostNeighbour = node.gCost + GetDistance(node, neighbour);
+                if (newGCostNeighbour >= neighbour.gCost && openSet.Contains(neighbour))
                     continue;
 
-                neighbour.gCost = newGScoreNeighbour;
+                neighbour.gCost = newGCostNeighbour;
                 neighbour.hCost = GetDistance(neighbour, end);
-                neighbour.parent = current;
-                if (openSet.Contains(neighbour))
+                neighbour.parent = node;
+                if (!openSet.Contains(neighbour))
                     openSet.Add(neighbour);
             }
         }
@@ -63,12 +65,12 @@ public class Astar
     private List<Vector2Int> RetracePath(Node start, Node end) 
     {
         List<Node> nodePath = new List<Node>();
-        Node current = end;
+        Node node = end;
 
-        while (current != start)
+        while (node != start)
         {
-            nodePath.Add(current);
-            current = current.parent;
+            nodePath.Add(node);
+            node = node.parent;
         }
 
         nodePath.Reverse();
@@ -78,6 +80,10 @@ public class Astar
         return path;
     }
 
+    /// <summary>
+    /// Note to self:
+    /// here you can add the heuretic bias.
+    /// </summary>
     private int GetDistance(Node a, Node b)
     {
         int distX = Mathf.Abs(a.position.x - b.position.x);
@@ -90,11 +96,11 @@ public class Astar
 
     private bool IsNeighbourWalkable(Node current, Node neighbour, Cell[,] grid)
     {
-        Debug.Log(neighbour.position);
-        Debug.Log(grid.GetLength(0));
-        Debug.Log(grid.GetLength(1));
-        return grid[neighbour.position.x, neighbour.position.y].
+        return !grid[current.position.x, current.position.y].
             HasWall(ConvertDirToWall(neighbour.position - current.position));
+
+        /*return !grid[neighbour.position.x, neighbour.position.y].
+            HasWall(ConvertDirToWall(neighbour.position - current.position));*/
     }
 
     private Wall ConvertDirToWall(Vector2Int dir)
@@ -139,6 +145,7 @@ public class Astar
                 if (checkZ < 0 || checkZ >= gridHeight)
                     continue;
 
+                // !FIX ??
                 neightbours.Add(new Node(new Vector2Int(checkX, checkZ), null, 0, 0));
             }
         }
