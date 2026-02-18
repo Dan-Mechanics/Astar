@@ -5,7 +5,8 @@ using UnityEngine;
 public class Astar
 {
     /// <summary>
-    /// https://youtu.be/mZfyt03LDH4?si=qZTRC-rUR_3WynmV&t=749
+    /// https://youtu.be/mZfyt03LDH4?si=NedikF3tFgZEZVMh&t=1425
+    /// Current bug: there is never a path. Working on it.
     /// </summary>
     public List<Vector2Int> FindPathToTarget(Vector2Int startPos, Vector2Int endPos, Cell[,] grid)
     {
@@ -38,22 +39,20 @@ public class Astar
             {
                 if (closedSet.Contains(neighbour))
                     continue;
-                
+
                 // DO WE EXCLUSE DIAGONALS ?? ASK FEEDBACK !!
                 if (!IsNeighbourWalkable(current, neighbour, grid))
                     continue;
 
                 int newGScoreNeighbour = current.gCost + GetDistance(current, neighbour);
-                if (newGScoreNeighbour < neighbour.gCost || !openSet.Contains(neighbour))
-                {
-                    neighbour.gCost = newGScoreNeighbour;
-                    neighbour.hCost = GetDistance(neighbour, end);
-                    neighbour.parent = current;
-                    if (openSet.Contains(neighbour))
-                        openSet.Add(neighbour);
-                }
+                if (newGScoreNeighbour >= neighbour.gCost && openSet.Contains(neighbour))
+                    continue;
 
-
+                neighbour.gCost = newGScoreNeighbour;
+                neighbour.hCost = GetDistance(neighbour, end);
+                neighbour.parent = current;
+                if (openSet.Contains(neighbour))
+                    openSet.Add(neighbour);
             }
         }
 
@@ -91,6 +90,9 @@ public class Astar
 
     private bool IsNeighbourWalkable(Node current, Node neighbour, Cell[,] grid)
     {
+        Debug.Log(neighbour.position);
+        Debug.Log(grid.GetLength(0));
+        Debug.Log(grid.GetLength(1));
         return grid[neighbour.position.x, neighbour.position.y].
             HasWall(ConvertDirToWall(neighbour.position - current.position));
     }
@@ -109,7 +111,7 @@ public class Astar
         if (dir == Vector2Int.down)
             return Wall.DOWN;
 
-        throw new Exception("Direction invalid.");
+        throw new Exception($"Direction invalid --> {dir}.");
     }
 
     /// <summary>
@@ -125,19 +127,19 @@ public class Astar
         {
             for (int z = -1; z <= 1; z++)
             {
-                if (x == 0 || z == 0)
+                if (Mathf.Abs(x) == Mathf.Abs(z))
                     continue;
 
                 int checkX = node.position.x + x;
                 int checkZ = node.position.y + z;
 
-                if (checkX < 0 || checkX > gridWidth)
+                if (checkX < 0 || checkX >= gridWidth)
                     continue;
 
-                if (checkZ < 0 || checkZ > gridHeight)
+                if (checkZ < 0 || checkZ >= gridHeight)
                     continue;
 
-                neightbours.Add(new Node(new Vector2Int(x, z), null, 0, 0));
+                neightbours.Add(new Node(new Vector2Int(checkX, checkZ), null, 0, 0));
             }
         }
 
@@ -164,12 +166,12 @@ public class Astar
         /// </summary>
         public int hCost;
 
-        public Node(Vector2Int position, Node parent, int gScore, int hScore)
+        public Node(Vector2Int position, Node parent, int gCost, int hCost)
         {
             this.position = position;
             this.parent = parent;
-            this.gCost = gScore;
-            this.hCost = hScore;
+            this.gCost = gCost;
+            this.hCost = hCost;
         }
     }
 }
