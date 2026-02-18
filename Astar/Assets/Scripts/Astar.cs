@@ -1,91 +1,175 @@
-﻿using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
-using System.Linq;
 
-/// <summary>
-/// https://www.youtube.com/playlist?list=PLFt_AvWsXl0cq5Umv3pMC9SPnKjfp9eGW
-/// https://hku.instructure.com/courses/2268/files/152426?module_item_id=15787
-/// https://www.youtube.com/watch?v=Zg0Cxn8AVZA
-/// </summary>
 public class Astar
 {
     /// <summary>
-    /// TODO: Implement this function so that it returns a list of Vector2Int positions which describes a path from the startPos to the endPos
-    /// Note that you will probably need to add some helper functions.
-    /// 
-    /// https://youtu.be/mZfyt03LDH4?si=9o3IaTTRF_UvElDl&t=479
+    /// https://youtu.be/mZfyt03LDH4?si=qZTRC-rUR_3WynmV&t=749
     /// </summary>
     public List<Vector2Int> FindPathToTarget(Vector2Int startPos, Vector2Int endPos, Cell[,] grid)
     {
-        List<Vector2Int> path = new List<Vector2Int>();
+        // !FIX ??
+        Node start = new Node(startPos, null, 0, 0);
+        Node end = new Node(endPos, null, 0, 0);
 
-        Node startNode = new Node(startPos, null, 0, 0);
-        Node endNode = new Node(endPos, null, 0, 0);
-
-        // make this a queueu?
         List<Node> openSet = new List<Node>();
         HashSet<Node> closedSet = new HashSet<Node>();
-        openSet.Add(startNode);
+        openSet.Add(start);
 
         // THERE ARE NODES LEFT TO SEARCH.
         while (openSet.Count > 0)
         {
             // FIND CHEAPEST NODE IN OPEN.
-            Node currentNode = openSet[0];
+            Node current = openSet[0];
             for (int i = 1; i < openSet.Count; i++)
             {
-                if (openSet[i].FScore < currentNode.FScore || openSet[i].FScore == currentNode.FScore && openSet[i].hScore < currentNode.hScore)
-                    currentNode = openSet[i];
+                if (openSet[i].FCost < current.FCost || openSet[i].FCost == current.FCost && openSet[i].hCost < current.hCost)
+                    current = openSet[i];
             }
 
-            openSet.Remove(currentNode);
-            closedSet.Add(currentNode);
+            openSet.Remove(current);
+            closedSet.Add(current);
 
-            if (currentNode == endNode)
-                return path;
+            if (current == end)
+                return RetracePath(start, end);
+
+            foreach (Node neighbour in GetCardinalNeighbours(current, grid))
+            {
+                if (closedSet.Contains(neighbour))
+                    continue;
+                
+                // DO WE EXCLUSE DIAGONALS ?? ASK FEEDBACK !!
+                if (!IsNeighbourWalkable(current, neighbour, grid))
+                    continue;
+
+                int newGScoreNeighbour = current.gCost + GetDistance(current, neighbour);
+                if (newGScoreNeighbour < neighbour.gCost || !openSet.Contains(neighbour))
+                {
+                    neighbour.gCost = newGScoreNeighbour;
+                    neighbour.hCost = GetDistance(neighbour, end);
+                    neighbour.parent = current;
+                    if (openSet.Contains(neighbour))
+                        openSet.Add(neighbour);
+                }
+
+
+            }
         }
 
         // THERE IS NO PATH.
         return null;
     }
 
+    private List<Vector2Int> RetracePath(Node start, Node end) 
+    {
+        List<Node> nodePath = new List<Node>();
+        Node current = end;
+
+        while (current != start)
+        {
+            nodePath.Add(current);
+            current = current.parent;
+        }
+
+        nodePath.Reverse();
+
+        List<Vector2Int> path = new List<Vector2Int>();
+        nodePath.ForEach(x => path.Add(x.position));
+        return path;
+    }
+
+    private int GetDistance(Node a, Node b)
+    {
+        int distX = Mathf.Abs(a.position.x - b.position.x);
+        int distZ = Mathf.Abs(a.position.y - b.position.y);
+        if (distX > distZ)
+            return 14 * distZ + 10 * (distX - distZ);
+
+        return 14 * distX + 10 * (distZ - distX);
+    }
+
+    private bool IsNeighbourWalkable(Node current, Node neighbour, Cell[,] grid)
+    {
+        return grid[neighbour.position.x, neighbour.position.y].
+            HasWall(ConvertDirToWall(neighbour.position - current.position));
+    }
+
+    private Wall ConvertDirToWall(Vector2Int dir)
+    {
+        if (dir == Vector2Int.right)
+            return Wall.RIGHT;
+
+        if (dir == Vector2Int.left)
+            return Wall.LEFT;
+
+        if (dir == Vector2Int.up)
+            return Wall.UP;
+
+        if (dir == Vector2Int.down)
+            return Wall.DOWN;
+
+        throw new Exception("Direction invalid.");
+    }
+
     /// <summary>
-    /// This is the Node class. 
-    /// You can use this class to store calculated FScores for the cells of the grid.
+    /// Diagonals are excluded.
     /// </summary>
+    private List<Node> GetCardinalNeighbours(Node node, Cell[,] grid)
+    {
+        int gridWidth = grid.GetLength(0);
+        int gridHeight = grid.GetLength(1);
+        
+        List<Node> neightbours = new List<Node>();
+        for (int x = -1; x <= 1; x++)
+        {
+            for (int z = -1; z <= 1; z++)
+            {
+                if (x == 0 || z == 0)
+                    continue;
+
+                int checkX = node.position.x + x;
+                int checkZ = node.position.y + z;
+
+                if (checkX < 0 || checkX > gridWidth)
+                    continue;
+
+                if (checkZ < 0 || checkZ > gridHeight)
+                    continue;
+
+                neightbours.Add(new Node(new Vector2Int(x, z), null, 0, 0));
+            }
+        }
+
+        return neightbours;
+    }
+
     public class Node
     {
         /// <summary>
-        /// GScore + HScore.
+        /// Total distance of the path.
         /// </summary>
-        public float FScore => gScore + hScore;
+        public int FCost => gCost + hCost;
 
-        /// <summary>
-        /// Position on the grid.
-        /// </summary>
-        public Vector2Int position; 
-
-        /// <summary>
-        /// Parent Node of this node.
-        /// </summary>
+        public Vector2Int position;
         public Node parent; 
 
         /// <summary>
-        /// Current travelled distance.
+        /// Distance from starting node.
         /// </summary>
-        public float gScore; 
+        public int gCost; 
+
         /// <summary>
-        /// Distance estimated based on Heuristic.
+        /// Distance to end node.
         /// </summary>
-        public float hScore;
+        public int hCost;
 
         public Node(Vector2Int position, Node parent, int gScore, int hScore)
         {
             this.position = position;
             this.parent = parent;
-            this.gScore = gScore;
-            this.hScore = hScore;
+            this.gCost = gScore;
+            this.hCost = hScore;
         }
     }
 }
