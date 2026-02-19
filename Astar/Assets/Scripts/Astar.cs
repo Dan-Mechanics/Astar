@@ -41,7 +41,7 @@ public class Astar
                 if (!IsNeighbourWalkable(node, neighbour, grid) || closedSet.Contains(neighbour.position))
                     continue;
 
-                // this is wrong FIX !!!!
+                // FEEDBACK REQUIRED HERE !!
                 int newNeighbourGCost = node.gCost + GetDistanceBetweenNodes(node, neighbour);
                 if (newNeighbourGCost < neighbour.gCost || !openSet.Contains(neighbour))
                 {
@@ -49,8 +49,10 @@ public class Astar
                     neighbour.hCost = GetDistanceBetweenNodes(neighbour, endNode);
                     neighbour.parent = node;
 
-                    // this is wrong FIX !!!!
-                    if (openSet.Find(n => n.position == neighbour.position) == null)
+                    /*if (openSet.Find(n => n.position == neighbour.position) == null)
+                        openSet.Add(neighbour);*/
+
+                    if (!openSet.Contains(neighbour))
                         openSet.Add(neighbour);
                 }
             }
@@ -63,12 +65,12 @@ public class Astar
     private List<Vector2Int> RetracePath(Node startNode, Node endNode) 
     {
         List<Vector2Int> path = new List<Vector2Int>();
-        Node currentNode = endNode;
+        Node node = endNode;
 
-        while (currentNode != startNode)
+        while (node != startNode)
         {
-            path.Add(currentNode.position);
-            currentNode = currentNode.parent;
+            path.Add(node.position);
+            node = node.parent;
         }
 
         path.Reverse();
@@ -134,6 +136,7 @@ public class Astar
                 if (checkZ < 0 || checkZ >= gridHeight)
                     continue;
 
+                // FEEDBACK REQUIRED HERE !!
                 Vector2Int nodePos = new Vector2Int(checkX, checkZ);
                 Node possibleNeighbour = openSet.Find(x => x.position == nodePos);
                 if(possibleNeighbour != null)
@@ -142,10 +145,9 @@ public class Astar
                 }
                 else
                 {
+                    // MAKE NEW NEIGHBOUR.
                     neightbours.Add(new Node(new Vector2Int(checkX, checkZ), null, 0, 0));
                 }
-
-               // neightbours.Add(new Node(new Vector2Int(checkX, checkZ), null, 0, 0));
             }
         }
 
