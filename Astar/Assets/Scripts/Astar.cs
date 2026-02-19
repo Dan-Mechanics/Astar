@@ -11,12 +11,14 @@ public class Astar
     public List<Vector2Int> FindPathToTarget(Vector2Int startPos, Vector2Int endPos, Cell[,] grid)
     {
         // !FIX ??
-        Node start = new Node(startPos, null, 0, 0);
-        Node end = new Node(endPos, null, 0, 0);
+        Node startNode = new Node(startPos, null, 0, 0);
+        Node endNode = new Node(endPos, null, 0, 0);
 
         List<Node> openSet = new List<Node>();
-        HashSet<Node> closedSet = new HashSet<Node>();
-        openSet.Add(start);
+        HashSet<Vector2Int> closedSet = new HashSet<Vector2Int>();
+        openSet.Add(startNode);
+
+        int debugCounter = 0;
 
         // THERE ARE NODES LEFT TO SEARCH.
         while (openSet.Count > 0)
@@ -33,65 +35,74 @@ public class Astar
             }
 
             openSet.Remove(node);
-            closedSet.Add(node);
+            closedSet.Add(node.position);
+            Debug.Log($"1closing {node}");
 
-            if (node == end)
-                return RetracePath(start, end);
+            if (node == endNode)
+                return RetracePath(startNode, endNode);
+                //return null;
 
-            foreach (Node neighbour in GetCardinalNeighbours(node, grid))
+            foreach (Node neighbour in GetCardinalNeighbours(node, grid, endNode))
             {
-                if (closedSet.Contains(neighbour))
+                Debug.Log($"2neighbour{neighbour}");
+                if (!IsNeighbourWalkable(node, neighbour, grid) || closedSet.Contains(neighbour.position))
                     continue;
 
-                if (!IsNeighbourWalkable(node, neighbour, grid))
-                    continue;
-
-                int newGCostNeighbour = node.gCost + GetDistance(node, neighbour);
-                if (newGCostNeighbour >= neighbour.gCost && openSet.Contains(neighbour))
-                    continue;
-
-                neighbour.gCost = newGCostNeighbour;
-                neighbour.hCost = GetDistance(neighbour, end);
-                neighbour.parent = node;
-                if (!openSet.Contains(neighbour))
-                    openSet.Add(neighbour);
+                int newCostToNeighbour = node.gCost + GetDistance(node, neighbour);
+                if (newCostToNeighbour < neighbour.gCost || !openSet.Contains(neighbour))
+                {
+                    neighbour.gCost = newCostToNeighbour;
+                    neighbour.hCost = GetDistance(neighbour, endNode);
+                    Debug.LogWarning(node != null);
+                    neighbour.parent = node;
+                    Debug.Log($"3set {neighbour} parent to {node}");
+                    Debug.Log($"4found waklable neighbour {neighbour}");
+                    if (!openSet.Contains(neighbour))
+                        openSet.Add(neighbour);
+                }
             }
+
+            Debug.LogWarning("end of iteration");
+            debugCounter++;
         }
 
+        Debug.LogWarning("NO PATH WAS FOUND FUCK SAUCE !!");
         // THERE IS NO PATH.
         return null;
     }
 
-    private List<Vector2Int> RetracePath(Node start, Node end) 
+    private List<Vector2Int> RetracePath(Node startNode, Node endNode) 
     {
-        List<Node> nodePath = new List<Node>();
-        Node node = end;
+        List<Node> path = new List<Node>();
+        Node currentNode = endNode;
 
-        while (node != start)
+        Debug.Log(startNode != null);
+        Debug.Log(endNode != null);
+
+        while (currentNode != startNode)
         {
-            nodePath.Add(node);
-            node = node.parent;
+            path.Add(currentNode);
+            Debug.LogWarning($"currentNode {currentNode}");
+            Debug.Log($"currentNode.parent: {currentNode.parent}");
+            currentNode = currentNode.parent;
         }
 
-        nodePath.Reverse();
+        path.Reverse();
 
-        List<Vector2Int> path = new List<Vector2Int>();
-        nodePath.ForEach(x => path.Add(x.position));
-        return path;
+        List<Vector2Int> positions = new List<Vector2Int>();
+        path.ForEach(x => positions.Add(x.position));
+        return positions;
     }
 
-    /// <summary>
-    /// Note to self:
-    /// here you can add the heuretic bias.
-    /// </summary>
     private int GetDistance(Node a, Node b)
     {
         int distX = Mathf.Abs(a.position.x - b.position.x);
-        int distZ = Mathf.Abs(a.position.y - b.position.y);
-        if (distX > distZ)
-            return 14 * distZ + 10 * (distX - distZ);
+        int distY = Mathf.Abs(a.position.y - b.position.y);
 
-        return 14 * distX + 10 * (distZ - distX);
+        if (distX > distY)
+            return 14 * distY + 10 * (distX - distY);
+
+        return 14 * distX + 10 * (distY - distX);
     }
 
     private bool IsNeighbourWalkable(Node current, Node neighbour, Cell[,] grid)
@@ -123,7 +134,7 @@ public class Astar
     /// <summary>
     /// Diagonals are excluded.
     /// </summary>
-    private List<Node> GetCardinalNeighbours(Node node, Cell[,] grid)
+    private List<Node> GetCardinalNeighbours(Node node, Cell[,] grid, Node endNode)
     {
         int gridWidth = grid.GetLength(0);
         int gridHeight = grid.GetLength(1);
@@ -145,8 +156,14 @@ public class Astar
                 if (checkZ < 0 || checkZ >= gridHeight)
                     continue;
 
-                // !FIX ??
-                neightbours.Add(new Node(new Vector2Int(checkX, checkZ), null, 0, 0));
+                Vector2Int pos = new Vector2Int(checkX, checkZ);
+                if (pos == endNode.position)
+                    neightbours.Add(endNode);
+                else
+                {
+                    // !FIX ??
+                    neightbours.Add(new Node(new Vector2Int(checkX, checkZ), null, 0, 0));
+                }
             }
         }
 
@@ -179,6 +196,11 @@ public class Astar
             this.parent = parent;
             this.gCost = gCost;
             this.hCost = hCost;
+        }
+
+        public override string ToString()
+        {
+            return $"{position}";
         }
     }
 }
