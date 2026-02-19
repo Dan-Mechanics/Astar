@@ -43,6 +43,7 @@ public class Astar
                 if (!IsNeighbourWalkable(node, neighbour, grid) || closedSet.Contains(neighbour.position))
                     continue;
 
+                // this is wrong FIX !!!!
                 int newCostToNeighbour = node.gCost + GetDistance(node, neighbour);
                 if (newCostToNeighbour >= neighbour.gCost && openSet.Contains(neighbour))
                     continue;
@@ -53,7 +54,7 @@ public class Astar
                 neighbour.parent = node;
                 Debug.Log($"3set {neighbour} parent to {node}");
                 Debug.Log($"4found waklable neighbour {neighbour}");
-                if (!openSet.Contains(neighbour))
+                if (openSet.Find(n => n.position == neighbour.position) == null)
                     openSet.Add(neighbour);
             }
 
@@ -184,7 +185,7 @@ public class Astar
         public int gCost; 
 
         /// <summary>
-        /// Distance to end node.
+        /// Guestimate to end node distance.
         /// </summary>
         public int hCost;
 
