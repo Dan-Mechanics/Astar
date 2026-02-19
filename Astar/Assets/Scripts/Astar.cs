@@ -6,19 +6,15 @@ public class Astar
 {
     /// <summary>
     /// https://youtu.be/mZfyt03LDH4?si=NedikF3tFgZEZVMh&t=1425
-    /// Current bug: there is never a path. Working on it.
     /// </summary>
     public List<Vector2Int> FindPathToTarget(Vector2Int startPos, Vector2Int endPos, Cell[,] grid)
     {
-        // !FIX ??
         Node startNode = new Node(startPos, null, 0, 0);
         Node endNode = new Node(endPos, null, 0, 0);
 
         List<Node> openSet = new List<Node>();
         HashSet<Vector2Int> closedSet = new HashSet<Vector2Int>();
         openSet.Add(startNode);
-
-        int debugCounter = 0;
 
         // THERE ARE NODES LEFT TO SEARCH.
         while (openSet.Count > 0)
@@ -40,7 +36,6 @@ public class Astar
 
             if (node == endNode)
                 return RetracePath(startNode, endNode);
-                //return null;
 
             foreach (Node neighbour in GetCardinalNeighbours(node, grid, endNode))
             {
@@ -49,31 +44,33 @@ public class Astar
                     continue;
 
                 int newCostToNeighbour = node.gCost + GetDistance(node, neighbour);
-                if (newCostToNeighbour < neighbour.gCost || !openSet.Contains(neighbour))
-                {
-                    neighbour.gCost = newCostToNeighbour;
-                    neighbour.hCost = GetDistance(neighbour, endNode);
-                    Debug.LogWarning(node != null);
-                    neighbour.parent = node;
-                    Debug.Log($"3set {neighbour} parent to {node}");
-                    Debug.Log($"4found waklable neighbour {neighbour}");
-                    if (!openSet.Contains(neighbour))
-                        openSet.Add(neighbour);
-                }
+                if (newCostToNeighbour >= neighbour.gCost && openSet.Contains(neighbour))
+                    continue;
+
+                neighbour.gCost = newCostToNeighbour;
+                neighbour.hCost = GetDistance(neighbour, endNode);
+                Debug.LogWarning(node != null);
+                neighbour.parent = node;
+                Debug.Log($"3set {neighbour} parent to {node}");
+                Debug.Log($"4found waklable neighbour {neighbour}");
+                if (!openSet.Contains(neighbour))
+                    openSet.Add(neighbour);
             }
 
             Debug.LogWarning("end of iteration");
-            debugCounter++;
         }
 
-        Debug.LogWarning("NO PATH WAS FOUND FUCK SAUCE !!");
+        Debug.LogWarning("NO PATH WAS FOUND !!");
         // THERE IS NO PATH.
         return null;
     }
 
+    /// <summary>
+    /// !OPTIMIZE 
+    /// </summary>
     private List<Vector2Int> RetracePath(Node startNode, Node endNode) 
     {
-        List<Node> path = new List<Node>();
+        List<Node> nodePath = new List<Node>();
         Node currentNode = endNode;
 
         Debug.Log(startNode != null);
@@ -81,19 +78,22 @@ public class Astar
 
         while (currentNode != startNode)
         {
-            path.Add(currentNode);
+            nodePath.Add(currentNode);
             Debug.LogWarning($"currentNode {currentNode}");
             Debug.Log($"currentNode.parent: {currentNode.parent}");
             currentNode = currentNode.parent;
         }
 
-        path.Reverse();
+        nodePath.Reverse();
 
-        List<Vector2Int> positions = new List<Vector2Int>();
-        path.ForEach(x => positions.Add(x.position));
-        return positions;
+        List<Vector2Int> path = new List<Vector2Int>();
+        nodePath.ForEach(x => path.Add(x.position));
+        return path;
     }
 
+    /// <summary>
+    /// Here you can influence the heuristic.
+    /// </summary>
     private int GetDistance(Node a, Node b)
     {
         int distX = Mathf.Abs(a.position.x - b.position.x);
@@ -109,9 +109,6 @@ public class Astar
     {
         return !grid[current.position.x, current.position.y].
             HasWall(ConvertDirToWall(neighbour.position - current.position));
-
-        /*return !grid[neighbour.position.x, neighbour.position.y].
-            HasWall(ConvertDirToWall(neighbour.position - current.position));*/
     }
 
     private Wall ConvertDirToWall(Vector2Int dir)
@@ -158,10 +155,11 @@ public class Astar
 
                 Vector2Int pos = new Vector2Int(checkX, checkZ);
                 if (pos == endNode.position)
+                {
                     neightbours.Add(endNode);
+                }
                 else
                 {
-                    // !FIX ??
                     neightbours.Add(new Node(new Vector2Int(checkX, checkZ), null, 0, 0));
                 }
             }
@@ -198,9 +196,6 @@ public class Astar
             this.hCost = hCost;
         }
 
-        public override string ToString()
-        {
-            return $"{position}";
-        }
+        public override string ToString() => position.ToString();
     }
 }
