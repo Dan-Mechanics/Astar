@@ -32,70 +32,50 @@ public class Astar
 
             openSet.Remove(node);
             closedSet.Add(node.position);
-            Debug.Log($"1closing {node}");
 
-            if (node == endNode)
-                return RetracePath(startNode, endNode);
+            if (node.position == endNode.position)
+                return RetracePath(startNode, node);
 
-            foreach (Node neighbour in GetCardinalNeighbours(node, grid, endNode))
+            foreach (Node neighbour in GetCardinalNeighbours(node, grid, openSet))
             {
-                Debug.Log($"2neighbour{neighbour}");
                 if (!IsNeighbourWalkable(node, neighbour, grid) || closedSet.Contains(neighbour.position))
                     continue;
 
                 // this is wrong FIX !!!!
-                int newCostToNeighbour = node.gCost + GetDistance(node, neighbour);
-                if (newCostToNeighbour >= neighbour.gCost && openSet.Contains(neighbour))
-                    continue;
+                int newNeighbourGCost = node.gCost + GetDistanceBetweenNodes(node, neighbour);
+                if (newNeighbourGCost < neighbour.gCost || !openSet.Contains(neighbour))
+                {
+                    neighbour.gCost = newNeighbourGCost;
+                    neighbour.hCost = GetDistanceBetweenNodes(neighbour, endNode);
+                    neighbour.parent = node;
 
-                neighbour.gCost = newCostToNeighbour;
-                neighbour.hCost = GetDistance(neighbour, endNode);
-                Debug.LogWarning(node != null);
-                neighbour.parent = node;
-                Debug.Log($"3set {neighbour} parent to {node}");
-                Debug.Log($"4found waklable neighbour {neighbour}");
-                if (openSet.Find(n => n.position == neighbour.position) == null)
-                    openSet.Add(neighbour);
+                    // this is wrong FIX !!!!
+                    if (openSet.Find(n => n.position == neighbour.position) == null)
+                        openSet.Add(neighbour);
+                }
             }
-
-            Debug.LogWarning("end of iteration");
         }
 
-        Debug.LogWarning("NO PATH WAS FOUND !!");
         // THERE IS NO PATH.
         return null;
     }
 
-    /// <summary>
-    /// !OPTIMIZE 
-    /// </summary>
     private List<Vector2Int> RetracePath(Node startNode, Node endNode) 
     {
-        List<Node> nodePath = new List<Node>();
+        List<Vector2Int> path = new List<Vector2Int>();
         Node currentNode = endNode;
-
-        Debug.Log(startNode != null);
-        Debug.Log(endNode != null);
 
         while (currentNode != startNode)
         {
-            nodePath.Add(currentNode);
-            Debug.LogWarning($"currentNode {currentNode}");
-            Debug.Log($"currentNode.parent: {currentNode.parent}");
+            path.Add(currentNode.position);
             currentNode = currentNode.parent;
         }
 
-        nodePath.Reverse();
-
-        List<Vector2Int> path = new List<Vector2Int>();
-        nodePath.ForEach(x => path.Add(x.position));
+        path.Reverse();
         return path;
     }
 
-    /// <summary>
-    /// Here you can influence the heuristic.
-    /// </summary>
-    private int GetDistance(Node a, Node b)
+    private int GetDistanceBetweenNodes(Node a, Node b)
     {
         int distX = Mathf.Abs(a.position.x - b.position.x);
         int distY = Mathf.Abs(a.position.y - b.position.y);
@@ -132,7 +112,7 @@ public class Astar
     /// <summary>
     /// Diagonals are excluded.
     /// </summary>
-    private List<Node> GetCardinalNeighbours(Node node, Cell[,] grid, Node endNode)
+    private List<Node> GetCardinalNeighbours(Node node, Cell[,] grid, List<Node> openSet)
     {
         int gridWidth = grid.GetLength(0);
         int gridHeight = grid.GetLength(1);
@@ -154,15 +134,18 @@ public class Astar
                 if (checkZ < 0 || checkZ >= gridHeight)
                     continue;
 
-                Vector2Int pos = new Vector2Int(checkX, checkZ);
-                if (pos == endNode.position)
+                Vector2Int nodePos = new Vector2Int(checkX, checkZ);
+                Node possibleNeighbour = openSet.Find(x => x.position == nodePos);
+                if(possibleNeighbour != null)
                 {
-                    neightbours.Add(endNode);
+                    neightbours.Add(possibleNeighbour);
                 }
                 else
                 {
                     neightbours.Add(new Node(new Vector2Int(checkX, checkZ), null, 0, 0));
                 }
+
+               // neightbours.Add(new Node(new Vector2Int(checkX, checkZ), null, 0, 0));
             }
         }
 
@@ -182,10 +165,10 @@ public class Astar
         /// <summary>
         /// Distance from starting node.
         /// </summary>
-        public int gCost; 
+        public int gCost;
 
         /// <summary>
-        /// Guestimate to end node distance.
+        /// Guesstimate distance to end node.
         /// </summary>
         public int hCost;
 
