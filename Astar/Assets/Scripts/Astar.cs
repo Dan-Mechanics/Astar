@@ -5,10 +5,13 @@ using UnityEngine;
 public class Astar
 {
     /// <summary>
-    /// https://youtu.be/mZfyt03LDH4?si=NedikF3tFgZEZVMh&t=1425
+    /// https://youtu.be/3Dw5d7PlcTM?si=vSILF859tv7xs7C6&t=389
     /// </summary>
     public List<Vector2Int> FindPathToTarget(Vector2Int startPos, Vector2Int endPos, Cell[,] grid)
     {
+        // idea: create a node[,] as big as grid so there's less fuss here.
+        // keep following tutorial for optimzation i guess.
+
         Node startNode = new Node(startPos, null, 0, 0);
         Node endNode = new Node(endPos, null, 0, 0);
 
