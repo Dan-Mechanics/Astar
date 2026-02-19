@@ -1,28 +1,34 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class Astar
 {
     /// <summary>
+    /// TODO: (E04: heap optimization)
     /// https://youtu.be/3Dw5d7PlcTM?si=vSILF859tv7xs7C6&t=389
     /// </summary>
-    public List<Vector2Int> FindPathToTarget(Vector2Int startPos, Vector2Int endPos, Cell[,] grid)
+    public List<Vector2Int> FindPathToTarget(Vector2Int startPos, Vector2Int endPos, Cell[,] cells)
     {
-        // idea: create a node[,] as big as grid so there's less fuss here.
-        // keep following tutorial for optimzation i guess.
+        int gridWidth = cells.GetLength(0);
+        int gridHeight = cells.GetLength(1);
+        Node[,] grid = new Node[gridWidth, gridHeight];
+        for (int x = 0; x < gridWidth; x++)
+        {
+            for (int y = 0; y < gridHeight; y++)
+            {
+                grid[x, y] = new Node(new Vector2Int(x, y), null, 0, 0);
+            }
+        }
 
-        Node startNode = new Node(startPos, null, 0, 0);
-        Node endNode = new Node(endPos, null, 0, 0);
+        Node startNode = grid[startPos.x, startPos.y];
+        Node endNode = grid[endPos.x, endPos.y];
 
         List<Node> openSet = new List<Node>();
-        HashSet<Vector2Int> closedSet = new HashSet<Vector2Int>();
+        HashSet<Node> closedSet = new HashSet<Node>();
         openSet.Add(startNode);
 
-        // THERE ARE NODES LEFT TO SEARCH.
         while (openSet.Count > 0)
         {
-            // FIND CHEAPEST NODE IN OPEN.
             Node node = openSet[0];
             for (int i = 1; i < openSet.Count; i++)
             {
@@ -34,17 +40,16 @@ public class Astar
             }
 
             openSet.Remove(node);
-            closedSet.Add(node.position);
+            closedSet.Add(node);
 
-            if (node.position == endNode.position)
+            if (node == endNode)
                 return RetracePath(startNode, node);
 
-            foreach (Node neighbour in GetCardinalNeighbours(node, grid, openSet))
+            foreach (Node neighbour in GetNeighbours(node, grid, gridWidth, gridHeight))
             {
-                if (!IsNeighbourWalkable(node, neighbour, grid) || closedSet.Contains(neighbour.position))
+                if (!IsNeighbourWalkable(node, neighbour, cells) || closedSet.Contains(neighbour))
                     continue;
 
-                // FEEDBACK REQUIRED HERE !!
                 int newNeighbourGCost = node.gCost + GetDistanceBetweenNodes(node, neighbour);
                 if (newNeighbourGCost < neighbour.gCost || !openSet.Contains(neighbour))
                 {
@@ -52,16 +57,12 @@ public class Astar
                     neighbour.hCost = GetDistanceBetweenNodes(neighbour, endNode);
                     neighbour.parent = node;
 
-                    /*if (openSet.Find(n => n.position == neighbour.position) == null)
-                        openSet.Add(neighbour);*/
-
                     if (!openSet.Contains(neighbour))
                         openSet.Add(neighbour);
                 }
             }
         }
 
-        // THERE IS NO PATH.
         return null;
     }
 
@@ -91,66 +92,63 @@ public class Astar
         return 14 * distX + 10 * (distY - distX);
     }
 
-    private bool IsNeighbourWalkable(Node current, Node neighbour, Cell[,] grid)
+    private bool IsNeighbourWalkable(Node node, Node neighbour, Cell[,] cells)
     {
-        return !grid[current.position.x, current.position.y].
-            HasWall(ConvertDirToWall(neighbour.position - current.position));
+        int x = neighbour.position.x - node.position.x;
+        int y = neighbour.position.y - node.position.y;
+
+        // CARDINAL.
+        Cell cell = cells[node.position.x, node.position.y];
+        if (x > 0 && cell.HasWall(Wall.RIGHT))
+            return false;
+
+        if (x < 0 && cell.HasWall(Wall.LEFT))
+            return false;
+
+        if (y > 0 && cell.HasWall(Wall.UP))
+            return false;
+
+        if (y < 0 && cell.HasWall(Wall.DOWN))
+            return false;
+
+        // DIAGONAL.
+        if (Mathf.Abs(x) == Mathf.Abs(y))
+        {
+            Cell verticalCell = cells[node.position.x, node.position.y + y];
+            Cell horizontalCell = cells[node.position.x + x, node.position.y];
+
+            if (x > 0 && verticalCell.HasWall(Wall.RIGHT))
+                return false;
+
+            if (x < 0 && verticalCell.HasWall(Wall.LEFT))
+                return false;
+
+            if (y > 0 && horizontalCell.HasWall(Wall.UP))
+                return false;
+
+            if (y < 0 && horizontalCell.HasWall(Wall.DOWN))
+                return false;
+        }
+
+        return true;
     }
 
-    private Wall ConvertDirToWall(Vector2Int dir)
+    private List<Node> GetNeighbours(Node node, Node[,] grid, int gridWidth, int gridHeight)
     {
-        if (dir == Vector2Int.right)
-            return Wall.RIGHT;
-
-        if (dir == Vector2Int.left)
-            return Wall.LEFT;
-
-        if (dir == Vector2Int.up)
-            return Wall.UP;
-
-        if (dir == Vector2Int.down)
-            return Wall.DOWN;
-
-        throw new Exception($"Direction invalid --> {dir}.");
-    }
-
-    /// <summary>
-    /// Diagonals are excluded.
-    /// </summary>
-    private List<Node> GetCardinalNeighbours(Node node, Cell[,] grid, List<Node> openSet)
-    {
-        int gridWidth = grid.GetLength(0);
-        int gridHeight = grid.GetLength(1);
-        
         List<Node> neightbours = new List<Node>();
         for (int x = -1; x <= 1; x++)
         {
-            for (int z = -1; z <= 1; z++)
+            for (int y = -1; y <= 1; y++)
             {
-                if (Mathf.Abs(x) == Mathf.Abs(z))
+                if (x == 0 && y == 0)
                     continue;
 
                 int checkX = node.position.x + x;
-                int checkZ = node.position.y + z;
+                int checkY = node.position.y + y;
 
-                if (checkX < 0 || checkX >= gridWidth)
-                    continue;
-
-                if (checkZ < 0 || checkZ >= gridHeight)
-                    continue;
-
-                // FEEDBACK REQUIRED HERE !!
-                Vector2Int nodePos = new Vector2Int(checkX, checkZ);
-                Node possibleNeighbour = openSet.Find(x => x.position == nodePos);
-                if(possibleNeighbour != null)
-                {
-                    neightbours.Add(possibleNeighbour);
-                }
-                else
-                {
-                    // MAKE NEW NEIGHBOUR.
-                    neightbours.Add(new Node(new Vector2Int(checkX, checkZ), null, 0, 0));
-                }
+                // CHECK GRID BOUNDS.
+                if(checkX >= 0 && checkX < gridWidth && checkY >= 0 && checkY < gridHeight)
+                    neightbours.Add(grid[checkX, checkY]);
             }
         }
 
