@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using System.Diagnostics;
 
 public class Astar
 {
@@ -9,6 +10,8 @@ public class Astar
     /// </summary>
     public List<Vector2Int> FindPathToTarget(Vector2Int startPos, Vector2Int endPos, Cell[,] cells)
     {
+        Stopwatch stopwatch = new Stopwatch();
+        stopwatch.Start();
         int gridWidth = cells.GetLength(0);
         int gridHeight = cells.GetLength(1);
         Node[,] grid = new Node[gridWidth, gridHeight];
@@ -43,8 +46,11 @@ public class Astar
             closedSet.Add(node);
 
             if (node == endNode)
+            {
+                stopwatch.Stop();
+                UnityEngine.Debug.Log(stopwatch.ElapsedMilliseconds + "ms");
                 return RetracePath(startNode, node);
-
+            }
             foreach (Node neighbour in GetNeighbours(node, grid, gridWidth, gridHeight))
             {
                 if (!IsNeighbourWalkable(node, neighbour, cells) || closedSet.Contains(neighbour))
@@ -155,8 +161,22 @@ public class Astar
         return neightbours;
     }
 
-    public class Node
+    public class Node : IHeapItem<Node>
     {
+        public int HeapIndex
+        {
+            get
+            {
+                return heapIndex;
+            }
+            set
+            {
+                heapIndex = value;
+            }
+        }
+
+        private int heapIndex;
+
         /// <summary>
         /// Total distance of the path.
         /// </summary>
@@ -181,6 +201,15 @@ public class Astar
             this.parent = parent;
             this.gCost = gCost;
             this.hCost = hCost;
+        }
+
+        public int CompareTo(Node other)
+        {
+            int result = FCost.CompareTo(other.FCost);
+            if (result == 0)
+                result = hCost.CompareTo(other.hCost);
+
+            return -result;
         }
 
         public override string ToString() => position.ToString();
