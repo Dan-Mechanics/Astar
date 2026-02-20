@@ -6,20 +6,37 @@ using UnityEngine;
 /// </summary>
 public class Astar
 {
+    private Node[,] grid;
+    
     public List<Vector2Int> FindPathToTarget(Vector2Int startPos, Vector2Int endPos, Cell[,] cells)
     {
-        // HERE YOU COULD MAKE IT SO THAT 
-        // YOU DON'T HAVE TO MAKE A NEW GRID OF NODES EVERYTIME?
         int gridWidth = cells.GetLength(0);
         int gridHeight = cells.GetLength(1);
-        Node[,] grid = new Node[gridWidth, gridHeight];
-        for (int x = 0; x < gridWidth; x++)
+        if (grid == null || grid.GetLength(0) != gridWidth || grid.GetLength(1) != gridHeight)
         {
-            for (int y = 0; y < gridHeight; y++)
+            grid = new Node[gridWidth, gridHeight];
+            for (int x = 0; x < gridWidth; x++)
             {
-                grid[x, y] = new Node(new Vector2Int(x, y), null, 0, 0);
+                for (int y = 0; y < gridHeight; y++)
+                {
+                    grid[x, y] = new Node(new Vector2Int(x, y), null, 0, 0);
+                }
             }
+
+            Debug.Log("Reloading grid.");
         }
+
+        if (startPos.x < 0 || startPos.x >= gridWidth)
+            return null;
+
+        if (endPos.x < 0 || endPos.x >= gridWidth)
+            return null;
+
+        if (startPos.y < 0 || startPos.y >= gridHeight)
+            return null;
+
+        if (endPos.y < 0 || endPos.y >= gridHeight)
+            return null;
 
         Node startNode = grid[startPos.x, startPos.y];
         Node endNode = grid[endPos.x, endPos.y];
