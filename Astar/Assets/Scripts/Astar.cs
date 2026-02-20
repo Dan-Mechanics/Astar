@@ -1,17 +1,15 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
-using System.Diagnostics;
 
+/// <summary>
+/// Source: https://www.youtube.com/playlist?list=PLFt_AvWsXl0cq5Umv3pMC9SPnKjfp9eGW
+/// </summary>
 public class Astar
 {
-    /// <summary>
-    /// TODO: (E04: heap optimization)
-    /// https://youtu.be/3Dw5d7PlcTM?si=vSILF859tv7xs7C6&t=389
-    /// </summary>
     public List<Vector2Int> FindPathToTarget(Vector2Int startPos, Vector2Int endPos, Cell[,] cells)
     {
-        Stopwatch stopwatch = new Stopwatch();
-        stopwatch.Start();
+        // HERE YOU COULD MAKE IT SO THAT 
+        // YOU DON'T HAVE TO MAKE A NEW GRID OF NODES EVERYTIME?
         int gridWidth = cells.GetLength(0);
         int gridHeight = cells.GetLength(1);
         Node[,] grid = new Node[gridWidth, gridHeight];
@@ -26,31 +24,18 @@ public class Astar
         Node startNode = grid[startPos.x, startPos.y];
         Node endNode = grid[endPos.x, endPos.y];
 
-        List<Node> openSet = new List<Node>();
+        Heap<Node> openSet = new Heap<Node>(gridWidth * gridHeight);
         HashSet<Node> closedSet = new HashSet<Node>();
         openSet.Add(startNode);
 
         while (openSet.Count > 0)
         {
-            Node node = openSet[0];
-            for (int i = 1; i < openSet.Count; i++)
-            {
-                if (openSet[i].FCost < node.FCost || openSet[i].FCost == node.FCost)
-                {
-                    if (openSet[i].hCost < node.hCost)
-                        node = openSet[i];
-                }
-            }
-
-            openSet.Remove(node);
+            Node node = openSet.RemoveFirst();
             closedSet.Add(node);
 
             if (node == endNode)
-            {
-                stopwatch.Stop();
-                UnityEngine.Debug.Log(stopwatch.ElapsedMilliseconds + "ms");
                 return RetracePath(startNode, node);
-            }
+
             foreach (Node neighbour in GetNeighbours(node, grid, gridWidth, gridHeight))
             {
                 if (!IsNeighbourWalkable(node, neighbour, cells) || closedSet.Contains(neighbour))

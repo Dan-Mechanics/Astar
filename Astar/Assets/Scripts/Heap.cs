@@ -1,7 +1,7 @@
 ﻿using System;
 
 /// <summary>
-/// Source: https://github.com/SebLague/Pathfinding/blob/master/Episode%2004%20-%20heap/Assets/Scripts/Heap.cs
+/// Source: https://www.youtube.com/playlist?list=PLFt_AvWsXl0cq5Umv3pMC9SPnKjfp9eGW
 /// </summary>
 public class Heap<T> where T : IHeapItem<T>
 {
