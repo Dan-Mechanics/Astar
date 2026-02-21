@@ -30,9 +30,11 @@ public class Heap<T> where T : IHeapItem<T>
     {
         T first = items[0];
         count--;
+
         items[0] = items[count];
         items[0].HeapIndex = 0;
         SortDown(items[0]);
+
         return first;
     }
 
@@ -87,6 +89,8 @@ public class Heap<T> where T : IHeapItem<T>
             {
                 break;
             }
+
+            parentIndex = (item.HeapIndex - 1) / 2;
         }
     }
 

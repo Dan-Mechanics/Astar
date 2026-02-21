@@ -22,8 +22,6 @@ public class Astar
                     grid[x, y] = new Node(new Vector2Int(x, y), null, 0, 0);
                 }
             }
-
-            Debug.Log("Reloading grid.");
         }
 
         if (startPos.x < 0 || startPos.x >= gridWidth)
